@@ -1,0 +1,8 @@
+*.mat
+*.crad
+*.nc
+*.pdf
+Reserva/
+data/raw/
+figures/*
+!figures/.gitkeep
