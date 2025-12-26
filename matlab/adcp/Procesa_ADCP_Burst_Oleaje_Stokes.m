@@ -1,52 +1,54 @@
-function Procesa_ADCP_Burst_Oleaje_Stokes()
-% Procesa_ADCP_Burst_Oleaje_Stokes
+function Procesa_ADCP_Burst_Oleaje_Stokes(path_burst, path_output, case_id)
+% PROCESA_ADCP_BURST_OLEAJE_STOKES
 %
-% DESCRIPCIÓN:
-%   Procesa archivos ADCP en modo burst para estimar:
-%     - Espectros de oleaje (u, v y presión)
-%     - Espectro direccional E(f,θ)
-%     - Parámetros integrales del oleaje
-%     - Perfil vertical y direccional de la deriva de Stokes
-%
-%   El script es AUTOCONTENIDO e incluye todas las funciones necesarias.
+% Procesa archivos ADCP en modo burst para estimar:
+%   - Espectros de oleaje (u, v y presión)
+%   - Espectro direccional E(f,θ)
+%   - Parámetros integrales del oleaje
+%   - Perfil vertical y direccional de la deriva de Stokes
 %
 % ENTRADAS:
-%   El usuario debe editar la sección CONFIGURACIÓN.
+%   path_burst  : carpeta con archivos ADCP Burst (*.mat)
+%   path_output : carpeta de salida
+%   case_id     : string descriptivo del caso
 %
-% SALIDAS:
-%   Archivo .mat con:
+% SALIDA:
+%   Guarda data_waves.mat con:
 %     - dat  : estructuras espectrales e integrales
 %     - Us3D : perfiles de deriva de Stokes
 %
-% REFERENCIAS:
-%   Emery & Thomson (2001)
-%   Gordon (2001), NortekUSA
-%   Kuik et al. (1988)
-%   Ardhuin et al. (2009, 2010)
-%
-% AUTOR:
-%   Carlos F. Herrera Vázquez
-%
-% FECHA:
-%   2025-12
-% ======================================================================= %
+% Autor: Carlos F. Herrera Vázquez
+% Fecha: 2025
+% ====================================================================== %
+
+%% ======================= VALIDACIONES ======================= %%
+if nargin < 2
+    error('Se requieren path_burst y path_output.');
+end
+if nargin < 3 || isempty(case_id)
+    case_id = 'ADCP Burst';
+end
+
+assert(isfolder(path_burst), 'La carpeta Burst no existe.');
+
+if ~isfolder(path_output)
+    mkdir(path_output)
+end
 
 %% ======================= CONFIGURACIÓN ======================= %%
 cfg = struct();
+cfg.path_burst  = path_burst;
+cfg.output_mat  = fullfile(path_output,'data_waves.mat');
+cfg.case_id     = case_id;
 
-cfg.path_burst  = 'PATH_A_CARPETA_BURST';   % <-- EDITAR
-cfg.output_mat  = 'PATH_A_SALIDA/data_waves.mat';
-cfg.case_id     = 'Sitio / Periodo';
-
-cfg.min_duration_sec = 300;    % duración mínima válida
-cfg.nF     = 100;              % bandas espectrales
-cfg.hp     = 0.5;              % altura sensor presión (m)
-cfg.resdir = 2;                % resolución direccional (deg)
-cfg.cell_index = 3;            % celda de velocidad usada
+cfg.min_duration_sec = 300;
+cfg.nF     = 100;
+cfg.hp     = 0.5;
+cfg.resdir = 2;
+cfg.cell_index = 3;
 cfg.verbose = true;
 
-%% ======================= VALIDACIONES ======================== %%
-assert(isfolder(cfg.path_burst),'La carpeta Burst no existe.');
+%% ======================= ARCHIVOS ======================= %%
 files = dir(fullfile(cfg.path_burst,'*.mat'));
 assert(~isempty(files),'No hay archivos .mat en la carpeta.');
 
@@ -54,7 +56,7 @@ m = matfile(cfg.output_mat,'Writable',true);
 dat_all  = cell(numel(files),1);
 Us3D_all = cell(numel(files),1);
 
-%% ======================= LOOP PRINCIPAL ====================== %%
+%% ======================= LOOP PRINCIPAL ======================= %%
 for ii = 1:numel(files)
 
     if cfg.verbose
@@ -86,7 +88,9 @@ for ii = 1:numel(files)
     u = detrend(U(:,ik));
     v = detrend(V(:,ik));
 
-    if mod(length(u),2), u(end)=[]; v(end)=[]; p(end)=[]; end
+    if mod(length(u),2)
+        u(end)=[]; v(end)=[]; p(end)=[];
+    end
 
     hv = z(ik);
     parms = [0.03 200 0.003 0];
@@ -118,8 +122,10 @@ for ii = 1:numel(files)
     Us3D_all{ii} = Us3D;
 end
 
+%% ======================= GUARDADO ======================= %%
 m.dat  = dat_all;
 m.Us3D = Us3D_all;
+m.cfg  = cfg;
 
 if cfg.verbose
     disp('Procesamiento finalizado.');
