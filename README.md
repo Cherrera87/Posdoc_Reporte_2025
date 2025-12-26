@@ -1,7 +1,7 @@
 # Procesamiento de oleaje y corrientes con ADCP y Radar HF
 
 Este repositorio contiene los códigos MATLAB desarrollados en el marco del proyecto
-posdoctoral para la estimación del oleaje direccional, la deriva de Stokes y la interpretación
+posdoctoral para la estimación del  direccional del oleaje, la deriva de Stokes y la interpretación
 de corrientes superficiales obtenidas con radar HF, usando mediciones de perfiladores
 acústicos (ADCP) en la Bahía de Todos Santos, Ensenada, México.
 
@@ -45,4 +45,10 @@ Los métodos implementados están documentados en:
 
 ```matlab
 addpath matlab/adcp
-plot_cobertura_temporal_mediciones
+
+plot_cobertura_temporal_mediciones(path_input, path_figure);
+Extrae_burst_ADCP_signature(path_input, path_output, 'PM_')
+Corrige_declinacion_ADCP_signature(path_output, 31.800, -116.700, 0,false, true);
+Procesa_ADCP_Burst_Oleaje_Stokes(path_output, path_output, 'PM_')
+
+
