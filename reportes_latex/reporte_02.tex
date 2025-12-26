@@ -1,0 +1,220 @@
+\documentclass[11pt,letterpaper]{article}
+
+% ===============================
+% Idioma y fuentes
+% ===============================
+\usepackage[spanish]{babel}
+\usepackage{fontspec}
+\setmainfont{Latin Modern Roman}
+\setsansfont{Latin Modern Sans}
+\setmonofont{Latin Modern Mono}
+
+% ===============================
+% Geometría y espaciado
+% ===============================
+\usepackage[
+letterpaper,
+left=1.5cm,
+right=1.5cm,
+top=1.5cm,
+bottom=2cm]{geometry}
+
+\usepackage{setspace}
+\onehalfspacing
+
+% ===============================
+% Matemáticas y símbolos
+% ===============================
+\usepackage{amsmath,amssymb,bm,physics}
+
+% ===============================
+% Figuras, tablas y gráficos
+% ===============================
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{caption}
+\captionsetup[figure]{width=0.8\textwidth}
+
+% ===============================
+% Referencias y enlaces
+% ===============================
+\usepackage{natbib}
+\usepackage{url}
+\usepackage{hyperref}
+
+% ===============================
+% Código
+% ===============================
+\usepackage{listings}
+\usepackage{xcolor}
+
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codeblue}{rgb}{0.0,0.2,0.6}
+\definecolor{codegreen}{rgb}{0.0,0.5,0.0}
+
+\lstdefinestyle{matlab}{
+language=Matlab,
+basicstyle=\ttfamily\footnotesize,
+keywordstyle=\color{codeblue}\bfseries,
+commentstyle=\color{codegreen},
+stringstyle=\color{red},
+numbers=left,
+numberstyle=\tiny\color{codegray},
+stepnumber=1,
+numbersep=6pt,
+frame=single,
+breaklines=true,
+showstringspaces=false
+}
+
+% ===============================
+% Título
+% ===============================
+\title{\bf Reporte técnico 02:  Metodologías para el análisis e interpretación de corrientes superficiales obtenidas con radar HF y su comparación con mediciones in situ de perfiladores acústicos}
+
+\author{
+Carlos F. Herrera Vázquez\\
+\small Posdoctorante, Departamento de Oceanografía Física\\
+\small Centro de Investigación Científica y de Educación Superior de Ensenada (CICESE)
+}
+%---------------------------------------
+
+
+
+
+%-----------------------------------------
+\date{\small Diciembre 2025}
+
+% ===============================
+% Documento
+% ===============================
+\begin{document}
+\maketitle
+
+\vspace{0.2cm}
+
+\noindent\textbf{Actividad:} Análisis de mediciones de corrientes y oleaje obtenidas con radar HF.
+
+% ===============================
+\abstract{El presente reporte considera que las mediciones de los perfiladores acústicos (ADCP) han sido previamente procesadas conforme a los métodos documentados en el \textit{Reporte Técnico 01: Procesamiento de datos de ADCP}, incluyendo la segmentación en bloques individuales de muestreo, la corrección de la declinación magnética y la estimación espectral del oleaje mediante el método PUV.
+
+A continuación se presenta la metodología para la interpretación física de las mediciones de corrientes superficiales obtenidas con radar HF y su comparación coherente con perfiles de velocidad obtenidos con ADCP.
+}
+
+% ==========================================================
+\section{Fundamento físico de las mediciones de radar HF}
+
+La medición de corrientes superficiales con radares de alta frecuencia (HF) se basa en la retrodispersión Bragg producida por ondas superficiales cuya longitud de onda satisface la condición de resonancia:
+
+\begin{equation}
+\lambda_{\text{Bragg}} = \frac{\lambda_r}{2} = \frac{c}{2 f_r},
+\end{equation}
+
+donde \( \lambda_r \) y \( f_r \) representan la longitud de onda y la frecuencia central de la señal electromagnética transmitida, respectivamente, y \( c \) es la velocidad de la luz.
+
+El desplazamiento Doppler observado en el espectro radar se relaciona con la velocidad radial superficial efectiva \( u_{\text{HF}} \) mediante:
+
+\begin{equation}
+u_{\text{HF}} = \frac{\Delta f}{2 f_{\text{Bragg}}} \, c,
+\end{equation}
+
+donde \( \Delta f \) es el corrimiento de frecuencia respecto a la frecuencia de Bragg en ausencia de corrientes. Esta velocidad no corresponde a una medición puntual en la superficie, sino a una velocidad efectiva integrada verticalmente, cuya interpretación física requiere considerar la estructura vertical del campo de velocidades.
+
+% ==========================================================
+\section{Efecto Doppler en presencia de corrientes verticalmente variables}
+
+Para una onda que se propaga sobre una corriente uniforme \( U \), la relación entre la frecuencia observada \( \omega \) y la frecuencia intrínseca \( \sigma \) está dada por la expresión del corrimiento Doppler:
+
+\begin{equation}
+\omega = \sigma + kU,
+\end{equation}
+
+donde \( k \) es el número de onda. Sin embargo, en aplicaciones oceanográficas reales, las corrientes presentan una estructura vertical \( U = U(z) \), por lo que el efecto Doppler no puede representarse mediante un único valor de velocidad.
+
+En este caso, el corrimiento Doppler puede expresarse como un promedio vertical ponderado del perfil de corriente:
+
+\begin{equation}
+\omega = \sigma + k \int_{-h}^{0} U(z)\, W(z)\, dz,
+\qquad
+\int_{-h}^{0} W(z)\, dz = 1,
+\end{equation}
+
+donde \( W(z) \) es una función de peso que describe la sensibilidad vertical de la medición radar. Esta formulación implica que la onda en la superficie interactúa de forma no uniforme con la columna de agua y que las capas más superficiales contribuyen de manera dominante al corrimiento Doppler observado.
+
+% ==========================================================
+\section{Función de ponderación vertical asociada a la onda de Bragg}
+
+En este trabajo, se propuso la función de peso vertical se deriva a partir del perfil vertical de energía cinética asociada a una ola lineal en condiciones de profundidad finita. De acuerdo con la teoría lineal del oleaje, la distribución vertical de la energía cinética está dada por:
+
+\begin{equation}
+e_K(z) \propto \frac{\cosh\!\left[2k(z+h)\right]}{\sinh^2(kh)},
+\end{equation}
+
+donde \( h \) es la profundidad total de la columna de agua. A partir de este perfil se define la función de peso normalizada asociada a la onda de Bragg:
+
+\begin{equation}
+W_{\text{Bragg}}(z) =
+\frac{\cosh\!\left[2k(z+h)\right]}
+{\displaystyle \int_{-h}^{0} \cosh\!\left[2k(z'+h)\right]\,dz'}.
+\end{equation}
+
+Esta función describe la sensibilidad vertical del radar HF a las corrientes y depende únicamente del número de onda Bragg y de la profundidad local. En el límite de aguas profundas (\( kh \gg 1 \)), esta expresión se reduce a una función exponencial del tipo \( W(z) \propto e^{2kz} \), recuperando formulaciones clásicas empleadas en la literatura.
+
+La velocidad efectiva medida por el radar puede interpretarse entonces como:
+
+\begin{equation}
+u_{\text{HF}} =
+\int_{-h}^{0} U(z)\, W_{\text{Bragg}}(z)\, dz.
+\end{equation}
+
+% ==========================================================
+\section{Control de calidad y preparación de las mediciones de ADCP}
+
+Las mediciones de obtenidas con los ADCP se les aplicó un control de calidad riguroso previo a su comparación con las observaciones radar. Este procedimiento incluyó la eliminación de datos con baja correlación acústica, amplitud insuficiente, velocidades fuera del rango físico del instrumento y mediciones localizadas por encima de la superficie libre.
+
+Las velocidades fueron expresadas en un sistema de referencia geográfico terrestre y organizadas en bloques temporales compatibles con el intervalo de integración del radar HF. Solo se consideraron válidos aquellos bloques que cumplieron con un porcentaje mínimo de datos confiables, garantizando la representatividad estadística de los perfiles utilizados.
+
+% ==========================================================
+\section{Representación radial de las corrientes y comparación con radar HF}
+
+Para establecer una comparación geométricamente consistente entre las mediciones in situ y el radar HF, las componentes horizontales de velocidad medidas por el ADCP fueron proyectadas sobre la dirección radial del haz del radar, definida por un ángulo azimutal \( \theta_r \):
+
+\begin{equation}
+u_r(z,t) = u(z,t)\cos\theta_r + v(z,t)\sin\theta_r.
+\end{equation}
+
+Esta proyección permite comparar directamente la componente de la corriente que contribuye al corrimiento Doppler observado por el radar. Posteriormente, la velocidad radial efectiva correspondiente al ADCP se obtuvo mediante un promedio vertical ponderado utilizando la función \( W_{\text{Bragg}}(z) \).
+
+% ==========================================================
+\section{Contribución de la deriva de Stokes}
+
+La deriva de Stokes del oleaje representa una componente de la corriente superficial que contribuye a la velocidad observada por el radar HF. A partir del espectro direccional del oleaje, previamente estimado, se calculó el perfil vertical y direccional de la deriva de Stokes:
+
+\begin{equation}
+\vec{u}_S(z,\theta) =
+4\pi \int_0^{\infty}
+f\, k(f)
+\left[
+\frac{\cosh\!\left(2k(h+z)\right)}{\sinh^2(kh)}
+\right]
+\mathbf{e}_\theta\,
+E(f,\theta)\, df,
+\end{equation}
+
+donde \( \mathbf{e}_\theta = (\cos\theta, \sin\theta) \) es el vector unitario en la dirección de propagación del oleaje. La deriva de Stokes se calcula en su forma direccional, permitiendo identificar explícitamente la componente orientada en la dirección del haz del radar HF. 
+
+Este enfoque permite separar conceptualmente la estimación de la estructura direccional del oleaje y permite la interpretación de las mediciones de corrientes superficiales obtenidas con el radar HF.
+
+
+
+
+% ==========================================================
+\section{Comentarios finales}
+
+La metodología presentada permite interpretar de manera físicamente consistente las mediciones de corrientes superficiales obtenidas con el radar HF, incorporando explícitamente la estructura vertical del campo de velocidades y la formulación teórica asociada a la deriva de Stokes. Esta aproximación facilita una comparación cuantitativa con perfiles de velocidad medidos por ADCP y establece una base reproducible para estudios posteriores de validación y análisis.
+
+El análisis detallado de la contribución de la deriva de Stokes en las mediciones de radar HF se encuentra actualmente en desarrollo, conforme al cronograma establecido del proyecto posdoctoral, y se concluirá en etapas posteriores de esta investigación.
+
+\bibliographystyle{apalike}
+\bibliography{referencias}
+\end{document}

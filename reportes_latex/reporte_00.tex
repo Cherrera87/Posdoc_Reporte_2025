@@ -1,0 +1,102 @@
+% =========================================================
+% DOCUMENTO BASE – REPORTE TÉCNICO POSDOCTORAL
+% Compilar con: lualatex
+% =========================================================
+
+\documentclass[12pt]{article}
+
+% ------------------ IDIOMA Y CODIFICACIÓN ----------------
+\usepackage[spanish]{babel}
+\usepackage[T1]{fontenc}
+
+% ------------------ FUENTES (LuaLaTeX) -------------------
+\usepackage{fontspec}
+\setmainfont{Latin Modern Roman}
+\setsansfont{Latin Modern Sans}
+\setmonofont{Latin Modern Mono}
+
+% ------------------ GEOMETRÍA ----------------------------
+\usepackage[a4paper,margin=1in]{geometry}
+
+% ------------------ MATEMÁTICAS --------------------------
+\usepackage{amsmath,amssymb,bm}
+\usepackage{physics}
+\usepackage{siunitx}
+\sisetup{detect-all}
+
+% ------------------ FIGURAS Y TABLAS ---------------------
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{float}
+
+% ------------------ CÓDIGO -------------------------------
+\usepackage{listings}
+\usepackage{xcolor}
+
+\lstdefinestyle{matlab}{
+    language=Matlab,
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{blue},
+    commentstyle=\color{gray},
+    stringstyle=\color{teal},
+    numbers=left,
+    numberstyle=\tiny,
+    stepnumber=1,
+    frame=single,
+    breaklines=true,
+    showstringspaces=false
+}
+\lstset{style=matlab}
+
+% ------------------ CITAS -------------------------------
+\usepackage{natbib}
+
+% ------------------ HIPERVÍNCULOS ------------------------
+\usepackage[hidelinks]{hyperref}
+
+% =========================================================
+% PORTADA
+% =========================================================
+\begin{document}
+\begin{titlepage}
+\thispagestyle{empty}
+
+\vspace*{1.5cm}
+\begin{center}
+
+{\LARGE\bfseries
+Estancia Posdoctoral (SECIHTI)
+}\\[1.5cm]
+
+{\Large\bfseries
+Evidencia de actividades}\\[0.4cm]
+
+{\Large
+1/Feb/2025 al 31/Dic/2028
+}\\[8.5cm]
+
+{\large
+\textbf{Dr. Carlos F. Herrera Vázquez\\ CVU: 610869}
+}\\[1.5cm]
+{\large
+Centro de Investigación Científica y de Educación Superior de Ensenada
+}\\[0.3cm]
+
+{\large
+Departamento de Oceanografía Física
+}\\[1.2cm]
+
+
+\vfill
+
+{\normalsize
+Ensenada, Baja California\\
+Diciembre 2025
+}
+
+\end{center}
+\end{titlepage}
+
+\setcounter{page}{1}
+
+\end{document}

@@ -1,0 +1,313 @@
+\documentclass[11pt,letterpaper]{article}
+
+\usepackage[spanish]{babel}
+%\usepackage[T1]{fontenc}
+%\usepackage[utf8]{inputenc}
+\usepackage{fontspec}
+\setmainfont{Latin Modern Roman}
+\setsansfont{Latin Modern Sans}
+\setmonofont{Latin Modern Mono}
+
+\usepackage[letterpaper,
+            left=1.5cm,
+            right=1.5cm,
+            top=1.5cm,
+            bottom=2cm]{geometry}
+
+\usepackage{setspace}
+\onehalfspacing
+
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{natbib}
+\usepackage{url}
+\usepackage{physics}
+\usepackage{bm}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta, positioning}
+\usepackage{microtype}
+
+\usepackage{caption}
+\captionsetup[figure]{width=0.8\textwidth}
+
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{hyperref}
+
+
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codeblue}{rgb}{0.0,0.2,0.6}
+\definecolor{codegreen}{rgb}{0.0,0.5,0.0}
+
+\lstdefinestyle{matlab}{
+    language=Matlab,
+    basicstyle=\ttfamily\footnotesize,
+    keywordstyle=\color{codeblue}\bfseries,
+    commentstyle=\color{codegreen},
+    stringstyle=\color{red},
+    numbers=left,
+    numberstyle=\tiny\color{codegray},
+    stepnumber=1,
+    numbersep=6pt,
+    frame=single,
+    breaklines=true,
+    breakatwhitespace=false,
+    showstringspaces=false,
+    tabsize=2,
+    captionpos=b
+}
+
+\lstset{
+  basicstyle=\ttfamily\small,
+  columns=fullflexible,
+  keepspaces=true,
+  breaklines=true
+}
+
+% ===============================
+% Título y autoría
+% ===============================
+\title{\bf Reporte técnico 01: Procesamiento de datos de ADCP}
+
+\author{
+Carlos F. Herrera Vázquez\\
+\small Posdoctorante, Departamento de Oceanografía Física\\
+\small Centro de Investigación Científica y de Educación Superior de Ensenada (CICESE)
+}
+
+\date{\small 11/Dic/2025}
+
+% ===============================
+% Documento
+% ===============================
+\begin{document}
+\maketitle
+\hspace{0.1cm}
+\begin{minipage}[c]{0.9\textwidth}
+\noindent\textbf{Actividad:}  Desarrollo y actualización de metodologías para la estimación del oleaje y las corrientes a partir de mediciones de perfiladores acústicos (ADCP).  
+\end{minipage}
+
+% ===============================
+\abstract{
+Este reporte describe la metodología desarrollada para el procesamiento y análisis de mediciones obtenidas con perfiladores acústicos de corrientes (ADCP), orientada a la estimación direccional del oleaje y de las corrientes superficiales. Se resumen los procedimientos empleados para organizar, preprocesar y analizar los datos, para garantizar la consistencia, calidad y reproducibilidad de los resultados.
+
+La metodología comprende: (1) la identificación de la cobertura temporal de las mediciones, (2) la segmentación de las medicioens en bloques individuales de muestreo, (3) la corrección de la declinación magnética a las componentes de velocidad, (4) la estimación espectral del oleaje y (5) el cálculo de la deriva de Stokes. Esta metodología es la base para análisis posteriores y para la integración de estos resultados en el proyecto posdoctoral.}
+
+\section{Localización de sensores y cobertura temporal}
+
+Para este trabajo, se cuenta con mediciones obtenidas con perfiladores acústicos anclados al fondo marino, instalados en los sitios denominados como Punta Morro (PM), Bajo San Miguel (BSM) e Isla Todos Santos (ITS), y un radar de alta frecuencia (radar HF) instalado en el Estero de Punta Banda (EPB). Todos los sensores se encuentran ubicados en las vecindades de la Bahía de Todos Santos, Ensenada, Baja California (Figura~\ref{fig:cobertura}, panel izquierdo).
+
+Dado que el objetivo de este proyecto está vinculado al análisis de mediciones de radar HF, el primer paso fue identificar la cobertura temporal de todas las mediciones disponibles. La correcta identificación de la cobertura temporal permite garantizar la comparación entre sensores y la coherencia temporal para los análisis posteriores (Figura~\ref{fig:cobertura}, panel derecho).
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[height=5cm]{Figuras/mapa.png}
+\hspace{1cm}
+\includegraphics[height=5cm,trim = 0cm 6cm 0cm 0cm,clip]{Figuras/serie_tempral.png}
+\caption{(Izquierda) Localización de los sensores utilizados en el estudio. (Derecha) Cobertura temporal de las mediciones de radar HF y perfiladores acústicos.}
+\label{fig:cobertura}
+\end{figure}
+
+\section{Selección de bloques individuales de muestreo (burst)}
+
+Las mediciones de los perfiladores acústicos se preprocesaron para su segmentación en bloques individuales de muestreo (\textit{bursts}), conforme a la configuración de medición de cada instrumento. Los datos se encuentran originalmente almacenados en archivos que contienen múltiples bloques consecutivos, cada uno correspondiente a un periodo de adquisición continua, de duración fija, seguido por un intervalo sin medición. 
+
+Debido al volumen y la estructura de los datos, el procesamiento conjunto de múltiples bloques en un solo archivo no resulta óptimo desde el punto de vista computacional ni adecuado para un análisis detallado de las mediciones. Por esta razón, cada bloque individual de muestreo se considera como una ventana temporal independiente y constituye la unidad para el análisis y estimación de parámetros de oleaje y corrientes.
+
+\subsection{Metodología}
+
+El procedimiento para la organización de los datos en bloques individuales de muestreo incluyó los siguientes pasos:
+
+\begin{enumerate}
+    \item Lectura de los archivos de nivel 0 generados por los perfiladores acústicos en los distintos sitios de estudio.
+    \item Identificación y delimitación de los bloques individuales de muestreo a partir del contador de ensambles (\texttt{Burst\_EnsembleCount}), mediante la detección de discontinuidades temporales.
+\item Extracción y almacenamiento de las variables medidas correspondientes a cada bloque en un archivo independiente, preservando su estructura dimensional original y los metadatos de configuración, descripciones y unidades.
+\end{enumerate}
+
+Esta organización permite tratar cada ventana de medición como una realización independiente para el análisis espectral del oleaje, facilita la ejecución eficiente de los cálculos en etapas posteriores y garantiza la coherencia temporal de las mediciones.
+
+\section{Corrección de la declinación magnética en las mediciones}
+
+Las velocidades registradas por los ADCP se encuentran originalmente referidas a un sistema local Este--Norte--Arriba (ENU) definido con respecto al norte magnético. Dado que la orientación del campo magnético terrestre difiere del norte geográfico y varía en el espacio y el tiempo, se corrigieron las mediciones por declinación magnética considerando la ubicación geográfica del instrumento y la fecha medición.
+
+El procedimiento aplicado incluyó los siguientes pasos:
+
+\begin{enumerate}
+    \item Lectura de los archivos correspondientes a cada periodo de muestreo.
+    \item Cálculo de la declinación magnética para cada instante de medición a partir del Modelo Geomagnético Internacional (IGRF).
+    \item Corrección del rumbo del instrumento y rotación de las componentes horizontales de velocidad desde el sistema magnético al sistema geográfico verdadero.
+    \item Almacenamiento de las velocidades corregidas y del valor de declinación magnética asociado ($D$).
+\end{enumerate}
+
+La corrección se realizó a través de una rotación horizontal de las componentes de velocidad desde el sistema de referencia magnético al sistema geográfico terrestre. Sean $(u_0, v_0)$ las componentes Este y Norte referidas al norte magnético y $D$ la declinación magnética (positiva hacia el Este); las componentes corregidas $(u, v)$ se obtuvieron como:
+
+\begin{equation}
+\begin{pmatrix}
+u \\
+v
+\end{pmatrix}
+=
+\begin{pmatrix}
+\cos D & \sin D \\
+-\sin D & \cos D
+\end{pmatrix}
+\begin{pmatrix}
+u_0 \\
+v_0
+\end{pmatrix}.
+\end{equation}
+
+Como resultado, se obtuvieron series de velocidad horizontal y rumbo del instrumento expresadas en un sistema de referencia geográfico terrestre, garantizando la coherencia direccional de las mediciones para su uso en análisis posteriores.
+
+Esta corrección resulta esencial para evitar sesgos sistemáticos en la estimación direccional del oleaje y de las corrientes, particularmente en análisis comparativos entre instrumentos con distintas orientaciones y ubicaciones.
+
+\section{Estimación del oleaje y la deriva de Stokes a partir de mediciones ADCP}
+
+A partir de las mediciones de velocidad y presión preprocesadas, se estimaron las propiedades espectrales del oleaje y la deriva de Stokes para cada bloque de muestreo. Se implementó el método PUV descrito por \citet{leegordon}, ampliamente documentado en la literatura para la estimación de oleaje a partir de mediciones subsuperficiales de presión y velocidad.
+
+El método PUV se basa en la teoría lineal del oleaje, que permite relacionar las señales medidas de presión \(p(t)\) y de velocidad horizontal \((u(t),v(t))\) con la elevación de la superficie libre  \(\eta(t)\) mediante funciones de transferencia dependientes de la frecuencia y de la profundidad \citep{YOUNG1994283, pelaez2025review}. Con estas aproximaciones, es posible reconstruir el espectro unidimensional del oleaje y obtener información direccional a partir de los coespectros cruzados entre las componentes de velocidad y presión.
+
+%-------------------------------------------------
+\subsection{Estimación del espectro unidimensional}
+
+La estimación de los espectros unidimensionales del oleaje se realizó a partir de las series temporales de presión registradas por los ADCP y de las componentes horizontales de velocidad, mediante transformadas de Fourier. Previo al análisis espectral, se removieron tendencias lineales y se aplicó una ventana de Blackman--Harris con el fin de reducir el \textit{leakage} espectral.
+
+El espectro de elevación superficial \(E(f)\) se obtuvo a partir del autoespectro de presión \(S_{pp}(f)\), aplicando una función de transferencia basada en la teoría lineal del oleaje:
+
+\begin{equation}
+E(f) = \left| H_p(f) \right|^{-2} S_{pp}(f),
+\end{equation}
+
+donde la función de transferencia \(H_p(f)\) relaciona la presión medida a profundidad con la elevación de la superficie y está dada por:
+
+\begin{equation}
+H_p(f) = \frac{\cosh\!\left[k(h+z_p)\right]}{\cosh(kh)},
+\end{equation}
+
+siendo \(k\) el número de onda, \(h\) la profundidad de la columna de agua y \(z_p\) la altura del sensor de presión respecto al fondo marino.
+
+Posteriormente, se aplicó un promedio espectral en bandas de frecuencia para reducir la varianza espectral. Se consideraron dos esquemas de promediado: lineal y logarítmico. El promediado lineal se utilizó para los análisis cuantitativos, mientras que el promediado logarítmico se empleó para la representación gráfica de los espectros. Cada banda quedó caracterizada por una frecuencia central \(f_c\), un ancho de banda efectivo \(\Delta f\) y el número de grados de libertad del espectro.
+
+
+%-------------------------------------------------
+\subsection{Estimación direccional del oleaje}
+
+La información direccional del oleaje se obtuvo a partir de los coespectros cruzados entre la presión y las componentes horizontales de velocidad. Para cada banda de frecuencia se calcularon los coeficientes de Fourier de primer orden:
+
+\begin{equation}
+a_1(f) = \frac{C_{up}(f)}{\sqrt{S_{uu}(f)\,S_{pp}(f)}},
+\qquad
+b_1(f) = \frac{C_{vp}(f)}{\sqrt{S_{vv}(f)\,S_{pp}(f)}},
+\end{equation}
+
+donde \(C_{up}(f)\) y \(C_{vp}(f)\) representan los coespectros entre la presión y las componentes zonal y meridional de la velocidad, respectivamente. La estimación direccional se basa en los momentos direccionales de primer orden \citep{Kuik1988}.
+
+
+La dirección promedio del oleaje se estimó como:
+
+\begin{equation}
+\theta_m(f) = \tan^{-1}\!\left(\frac{b_1(f)}{a_1(f)}\right),
+\end{equation}
+
+donde el ángulo se define en el intervalo adecuado según la convención direccional adoptada.
+
+La dispersión direccional se estimó a partir del módulo del primer momento direccional:
+
+\begin{equation}
+R_1(f) = \sqrt{a_1^2(f) + b_1^2(f)},
+\qquad
+\sigma_\theta(f) = \sqrt{2\left[1 - R_1(f)\right]}.
+\end{equation}
+
+\subsection{Reconstrucción del espectro direccional}
+
+El espectro direccional del oleaje se reconstruyó como:
+
+\begin{equation}
+E(f,\theta) = E(f)\,D(f,\theta),
+\end{equation}
+
+donde \(D(f,\theta)\) es una función de distribución direccional normalizada que satisface:
+
+\begin{equation}
+\int_0^{2\pi} D(f,\theta)\,d\theta = 1.
+\end{equation}
+
+Se implementaron distintas formulaciones para \(D(f,\theta)\) con el fin de evaluar la sensibilidad de los resultados a la parametrización direccional, incluyendo:
+
+\begin{itemize}
+    \item Una distribución direccional de tipo $\cos^{2s}$, utilizada clásicamente para describir la dispersión direccional del oleaje en función del parámetro de forma \(s\) \citep{Mitsuyasu1975directional}.
+    
+    \item Una distribución de tipo Von Mises, caracterizada por un parámetro de concentración \(\kappa\), adecuada para la representación de espectros unimodales con dispersión direccional limitada.
+    
+    \item Una distribución de tipo secante hiperbólica \citep{Donelan1985directional}, que permite reproducir adecuadamente la distribución angular de la energía observada experimentalmente, y que se expresa como:
+    
+    \begin{equation}
+    D(f,\theta) \;=\; C_\beta\,
+    \operatorname{sech}^\beta\!\left(\frac{\theta - \theta_m(f)}{2}\right),
+    \end{equation}
+
+    donde \(C_\beta\) es una constante de normalización y \(\beta\) controla la anchura angular de la distribución.
+\end{itemize}
+%--------------------
+\subsection{Estimación de parámetros integrales del oleaje}
+
+A partir de los espectros unidimensionales se calcularon parámetros integrales del oleaje. La altura significante \(H_s\) y la frecuencia espectral promedio \(f_m\) se estimaron como:
+
+\begin{equation}
+H_s = 4\sqrt{\int_0^{\infty} E(f)\,df},
+\qquad
+f_m = \frac{\int_0^{\infty} f\,E(f)\,df}{\int_0^{\infty} E(f)\,df}.
+\end{equation}
+
+La frecuencia asociada al pico espectral \(f_p\) es aquella donde se localiza el máximo de energía en el espectro, \(E(f)\), y representa la frecuencia dominante del oleaje.
+
+Los parámetros direccionales integrales se obtuvieron a partir del espectro direccional \(E(f,\theta)\) mediante integrales ponderadas en frecuencia y dirección, permitiendo estimar la dirección promedio de propagación, la dirección asociada al pico espectral y la dispersión direccional promedio del oleaje.
+
+
+
+%-------------------------------------------------
+\subsection{Estimación de la deriva de Stokes}
+
+La deriva de Stokes se estimó a partir del espectro direccional del oleaje utilizando expresiones espectrales derivadas de la teoría lineal. El perfil vertical y direccional de la deriva se calculó como:
+
+\begin{equation}
+\vec{u}_S(z,\theta) =
+4\pi \int_0^{\infty}
+f\,k(f)
+\left[
+\frac{\cosh\!\left(2k(h+z)\right)}{\sinh^2(kh)}
+\right]
+\mathbf{e}_\theta\,
+E(f,\theta)\,df,
+\end{equation}
+
+donde \(\mathbf{e}_\theta = [\cos\theta,\,\sin\theta]\) es el vector unitario en la dirección de propagación del oleaje.
+
+Esta formulación permite reconstruir un campo tridimensional de la deriva de Stokes \(\vec{u}_S(z,\theta)\), describiendo su estructura vertical y direccional.
+
+\subsection{Ejemplo de resultados del procesamiento del oleaje}
+
+En la Figura~\ref{fig:ejemplo_oleaje} se presentan, a modo de ejemplo, el resultado del procesamiento de las mediciones de ADCP registradas en el sitio Bajo San Miguel el 17 de marzo de 2022 a las 00:00~h. Se muestra la serie temporal de la altura significante del oleaje, los parámetros integrales estimados, el espectro unidireccional y direccional del oleaje.
+
+Para este intervalo se estimó una altura significante del oleaje de \(H_s = 1.53\)~m. El análisis espectral permite identificar claramente la presencia de dos sistemas de oleaje, caracterizados por picos espectrales diferenciados tanto en frecuencia como en dirección de propagación, lo que sugiere la coexistencia de oleaje local (\textit{wind-sea}) y oleaje de generado remotamente (\textit{swell}) durante el periodo analizado.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.65\textwidth]{Figuras/ADCP.png}
+\caption{Ejemplo de resultados del procesamiento del oleaje para las mediciones ADCP registradas en Bajo San Miguel el 17 de marzo de 2022 a las 00:00~h. Se muestran la evolución temporal de la altura significante, los parámetros integrales del oleaje, el espectro unidimensional de elevación superficial y el espectro direccional correspondiente.}
+\label{fig:ejemplo_oleaje}
+\end{figure}
+
+%-------------------------------------------------
+\subsection{Comentarios finales}
+
+La implementación de distintos esquemas de promediado espectral y de múltiples formulaciones para la distribución direccional permite evaluar la robustez de las estimaciones del oleaje y de la deriva de Stokes considerandos los diferentes métodos. Este procesamiento representa una extensión del método PUV y facilita su aplicación a distintos conjuntos de datos y condiciones de medición, además, se realizaron códigos optimizados para su programación para cómputo en paralelo.
+\newpage
+\bibliographystyle{apalike}
+\bibliography{referencias}
+
+\end{document}
+
+
