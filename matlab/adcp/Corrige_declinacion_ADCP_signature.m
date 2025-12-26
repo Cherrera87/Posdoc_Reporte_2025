@@ -1,70 +1,51 @@
-function Corrige_declinacion_ADCP_signature()
+function Corrige_declinacion_ADCP_signature(parentBurstDir, lat, lon, alt_m, useParallel, verbose)
 % Corrige_declinacion_ADCP_signature
 %
-% DESCRIPCIÓN:
-%   Aplica la corrección por declinación magnética a las velocidades
-%   horizontales (ENU) medidas por ADCP Signature, convirtiéndolas desde
-%   un sistema de referencia magnético a un sistema geográfico verdadero.
+% Aplica corrección por declinación magnética a velocidades ENU medidas por
+% ADCP Signature (referidas a norte magnético) para obtener ENU verdadero.
+% Se calcula muestra a muestra con IGRF y se guarda en cada archivo burst:
+%   - Data.Burst_Velocity_ENU_true
+%   - Data.Declinacion_deg
+%   - Data.Heading_true (si existe Burst_Heading)
 %
-%   La corrección se realiza muestra a muestra utilizando el modelo IGRF,
-%   y se almacena directamente en cada archivo .mat de burst, agregando
-%   nuevos campos a la estructura Data.
+% ENTRADAS:
+%   parentBurstDir : carpeta que contiene subcarpetas *_Burst
+%   lat, lon, alt_m: coordenadas (escalares o vectores por muestra)
+%   useParallel    : true/false
+%   verbose        : true/false
 %
-% CAMPOS DE ENTRADA REQUERIDOS (en Data):
-%   - Burst_Time            : tiempo (datenum)
-%   - Burst_Velocity_ENU    : [Nt x 3 x Nz] velocidades ENU magnéticas
-%
-% CAMPOS GENERADOS (en Data):
-%   - Burst_Velocity_ENU_true : velocidades ENU referidas al norte verdadero
-%   - Declinacion_deg         : declinación magnética (° Este positivo)
-%   - Heading_true (opcional) : rumbo corregido, si existe Burst_Heading
-%
-% CONFIGURACIÓN:
-%   Se define al inicio del script (lat, lon, carpetas, paralelización).
-%
-% REFERENCIAS:
-%   - Emery, W. J., & Thomson, R. E. (2001). Data Analysis Methods in
-%     Physical Oceanography. Elsevier.
-%   - International Association of Geomagnetism and Aeronomy (IAGA),
-%     International Geomagnetic Reference Field (IGRF).
-%
-% AUTOR:
-%   Carlos F. Herrera Vázquez
-%
-% FECHA:
-%   2025-12
-%
+% Autor: Carlos F. Herrera Vázquez
+% Fecha: 2025-12
 % -------------------------------------------------------------------------
 
-%% ===================== CONFIGURACIÓN DEL USUARIO ===================== %%
+%% ===================== DEFAULTS / VALIDACIÓN ===================== %%
+if nargin < 1 || isempty(parentBurstDir)
+    error('Se requiere parentBurstDir');
+end
+if nargin < 2 || isempty(lat),  lat = 31.800;   end
+if nargin < 3 || isempty(lon),  lon = -116.700; end
+if nargin < 4 || isempty(alt_m), alt_m = 0;     end
+if nargin < 5 || isempty(useParallel), useParallel = true; end
+if nargin < 6 || isempty(verbose),     verbose = true;     end
+
 cfg = struct();
+cfg.lat = lat;
+cfg.lon = lon;
+cfg.alt_m = alt_m;
+cfg.parentBurstDir = parentBurstDir;
+cfg.useParallel = useParallel;
+cfg.verbose = verbose;
 
-% Coordenadas del instrumento (escalares o vectores)
-cfg.lat   = 31.800;     % grados Norte
-cfg.lon   = -116.700;   % grados Este
-cfg.alt_m = 0;          % altitud sobre el nivel del mar [m]
-
-% Carpeta que contiene subcarpetas *_Burst
-cfg.parentBurstDir = '/ruta/a/carpeta_con_bursts/';
-
-% Procesamiento paralelo
-cfg.useParallel = true;
-
-% Verbosidad
-cfg.verbose = true;
-
-%% ===================== VALIDACIONES BÁSICAS ========================== %%
 assert(isfolder(cfg.parentBurstDir), ...
     'La carpeta especificada no existe: %s', cfg.parentBurstDir);
 
-folders = dir(fullfile(cfg.parentBurstDir,'*_Burst'));
-folders = folders([folders.isdir]);
+files = dir(fullfile(cfg.parentBurstDir,'Burst*.mat'));
 
-if isempty(folders)
-    error('No se encontraron carpetas *_Burst en %s', cfg.parentBurstDir);
+if isempty(files)
+    error('No se encontraron archivos de Burst en %s', cfg.parentBurstDir);
 end
 
-%% ===================== PARALELIZACIÓN ================================ %%
+%% ===================== PARALELIZACIÓN ===================== %%
 if cfg.useParallel
     try
         if isempty(gcp('nocreate'))
@@ -77,16 +58,18 @@ if cfg.useParallel
     end
 end
 
-%% ===================== LOOP PRINCIPAL ================================ %%
-loopFolders = 1:numel(folders);
+%% ===================== LOOP PRINCIPAL ===================== %%
+loopFiles = 1:numel(files);
 
 if cfg.useParallel
-    parfor ifol = loopFolders
-        procesa_carpeta_burst(folders(ifol), cfg);
+    parfor ifol = loopFiles
+        fid= files(ifol);
+        procesa_carpeta_burst(fid, cfg);
     end
 else
-    for ifol = loopFolders
-        procesa_carpeta_burst(folders(ifol), cfg);
+    for ifol = loopFiles
+        fid = files(ifol);
+        procesa_carpeta_burst(fid, cfg);
     end
 end
 
@@ -100,24 +83,17 @@ end
 %% ========================= FUNCIONES ================================= %%
 %% ===================================================================== %%
 
-function procesa_carpeta_burst(folderInfo, cfg)
-
-path_files = fullfile(folderInfo.folder, folderInfo.name);
-files = dir(fullfile(path_files,'*.mat'));
-
-for ii = 1:numel(files)
-
-    fname = fullfile(files(ii).folder, files(ii).name);
-
+function procesa_carpeta_burst(fid, cfg)
+    fname = fullfile(fid.folder,fid.name);
     if cfg.verbose
-        fprintf('Procesando: %s\n', fname);
+        fprintf('Procesando: %s\n', fid.name);
     end
+
 
     try
         S = load(fname,'Data');
         if ~isfield(S,'Data')
-            warning('No existe "Data" en %s. Se omite.', fname);
-            continue
+            warning('No existe "Data" en %s. Se omite.', fid.name);
         end
 
         Data = S.Data;
@@ -127,7 +103,6 @@ for ii = 1:numel(files)
         if ~all(isfield(Data, req))
             warning('Faltan campos requeridos (%s) en %s.', ...
                 strjoin(req,', '), fname);
-            continue
         end
 
         integrar_y_guardar(fname, Data, cfg);
@@ -139,7 +114,7 @@ for ii = 1:numel(files)
     catch ME
         warning('Error en %s: %s', fname, ME.message);
     end
-end
+
 end
 
 % --------------------------------------------------------------------- %
@@ -181,9 +156,9 @@ alt_m = expand_vector(alt_m, Nt);
 % Declinación magnética (IGRF)
 D_vec = declinacion_igrf_vec(lat, lon, alt_m, tiempo);   % [Nt x 1]
 
-% Componentes horizontales
-E = double(squeeze(V(:,1,:)));   % Este magnético
-N = double(squeeze(V(:,2,:)));   % Norte magnético
+% Componentes horizontales (magnéticas)
+E = double(squeeze(V(:,1,:)));   % [Nt x Nc]
+N = double(squeeze(V(:,2,:)));   % [Nt x Nc]
 
 ct = cosd(D_vec);
 st = sind(D_vec);
@@ -217,6 +192,7 @@ d0 = datetime(y,1,1);
 d1 = datetime(y+1,1,1);
 decYear = y + days(fecha - d0) ./ days(d1 - d0);
 
+% igrfmagm espera alt en km
 [~, ~, D_deg, ~, ~] = igrfmagm(alt_m/1000, lat, lon, decYear);
 end
 
@@ -227,6 +203,6 @@ if isscalar(v)
     v = repmat(v, N, 1);
 else
     v = v(:);
+    assert(numel(v)==N, 'Vector debe ser escalar o de longitud Nt.');
 end
 end
-
